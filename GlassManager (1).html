@@ -1,0 +1,1607 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glass Manager | مدیریت تولید شیشه</title>
+<style>
+  :root{
+    --bg:#12161b; --panel:#1a2029; --panel-2:#212933; --panel-3:#2a333e;
+    --border:#323c48; --text:#e9edf1; --text-dim:#8b96a3; --text-faint:#5f6b78;
+    --accent:#49b3c2; --accent-dim:#2d6b74; --amber:#e0a458; --amber-dim:#7a5a2e;
+    --success:#6fcf7f; --success-dim:#2f5c37; --danger:#e2685f; --danger-dim:#6b2f2b;
+    --radius:10px; --mono:'Consolas','SFMono-Regular',Menlo,monospace;
+    --sans:'Vazirmatn','Segoe UI',Tahoma,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;font-family:var(--sans);
+    background:
+      radial-gradient(1200px 600px at 85% -10%, rgba(73,179,194,.08), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(224,164,88,.06), transparent 60%),
+      var(--bg);
+    color:var(--text);min-height:100%;font-size:14px;
+  }
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:var(--panel-3);border-radius:8px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  a{color:inherit;} button{font-family:inherit;cursor:pointer;} input,select,textarea{font-family:inherit;}
+
+  #loginScreen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(1000px 600px at 50% 0%, rgba(73,179,194,.10), transparent 60%), var(--bg); z-index:999;}
+  .login-card{width:360px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:32px 28px;position:relative;overflow:hidden;}
+  .login-card::before{content:"";position:absolute;top:0;right:0;left:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--amber));}
+  .login-glyph{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,var(--accent-dim),var(--panel-2));border:1px solid var(--accent-dim);display:flex;align-items:center;justify-content:center;margin-bottom:18px;}
+  .brand-title{font-size:20px;font-weight:700;letter-spacing:.5px;margin:0 0 2px;}
+  .brand-sub{color:var(--text-dim);font-size:12.5px;margin:0 0 24px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12.5px;color:var(--text-dim);margin-bottom:6px;}
+  .field input, .field select, .field textarea{width:100%;background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:13.5px;outline:none;transition:border-color .15s;}
+  .field textarea{resize:vertical;min-height:60px;}
+  .field input:focus, .field select:focus, .field textarea:focus{border-color:var(--accent);}
+  .btn{display:inline-flex;align-items:center;gap:6px;justify-content:center;background:var(--panel-3);border:1px solid var(--border);color:var(--text);padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;transition:.15s;}
+  .btn:hover{border-color:var(--accent);}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),#3a919d);border-color:var(--accent);color:#0c1216;}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-danger{background:transparent;border-color:var(--danger);color:var(--danger);}
+  .btn-danger:hover{background:rgba(226,104,95,.1);}
+  .btn-ghost{background:transparent;border-color:transparent;color:var(--text-dim);}
+  .btn-ghost:hover{color:var(--text);background:var(--panel-2);}
+  .btn-block{width:100%;} .btn-sm{padding:5px 10px;font-size:12px;}
+  .login-error{color:var(--danger);font-size:12.5px;margin-top:10px;min-height:16px;}
+  .login-hint{color:var(--text-faint);font-size:11.5px;margin-top:18px;line-height:1.9;border-top:1px dashed var(--border);padding-top:12px;}
+
+  #app{display:none;min-height:100vh;grid-template-columns:1fr 236px;}
+  #app.show{display:grid;}
+  .sidebar{background:var(--panel);border-left:1px solid var(--border);padding:18px 14px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh;overflow-y:auto;}
+  .sb-brand{display:flex;align-items:center;gap:10px;padding:6px 8px 18px;border-bottom:1px solid var(--border);margin-bottom:12px;}
+  .sb-brand-glyph{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent-dim),var(--panel-2));border:1px solid var(--accent-dim);flex-shrink:0;}
+  .sb-brand b{font-size:14px;display:block;} .sb-brand span{font-size:10.5px;color:var(--text-faint);}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:8px;color:var(--text-dim);font-size:13px;font-weight:600;cursor:pointer;transition:.12s;border:1px solid transparent;}
+  .nav-item:hover{background:var(--panel-2);color:var(--text);}
+  .nav-item.active{background:var(--panel-2);color:var(--accent);border-color:var(--accent-dim);}
+  .nav-item .dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6;flex-shrink:0;}
+  .nav-label{font-size:10.5px;color:var(--text-faint);padding:12px 10px 4px;letter-spacing:.4px;}
+  .sb-footer{margin-top:auto;padding-top:14px;border-top:1px solid var(--border);}
+  .sb-user{display:flex;align-items:center;justify-content:space-between;padding:8px 8px;}
+  .sb-user-name{font-size:12.5px;font-weight:600;} .sb-user-role{font-size:10.5px;color:var(--text-faint);}
+
+  .main{padding:22px 26px 60px;min-width:0;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:16px;flex-wrap:wrap;}
+  .page-title{font-size:19px;font-weight:800;margin:0;} .page-sub{color:var(--text-dim);font-size:12.5px;margin:3px 0 0;}
+  .search-box{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:8px 12px;min-width:240px;}
+  .search-box input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:13px;}
+
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
+  .card + .card{margin-top:16px;}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+  .card-head h3{margin:0;font-size:14.5px;font-weight:700;} .card-head .muted{color:var(--text-dim);font-size:12px;}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px;}
+  .stat-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;position:relative;overflow:hidden;}
+  .stat-card b{display:block;font-size:24px;font-weight:800;margin-bottom:2px;} .stat-card span{color:var(--text-dim);font-size:12px;}
+  .stat-card i{position:absolute;left:14px;top:14px;width:8px;height:8px;border-radius:50%;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{text-align:right;color:var(--text-dim);font-weight:600;font-size:11.5px;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+  tbody td{padding:10px 10px;border-bottom:1px solid var(--panel-2);vertical-align:middle;}
+  tbody tr:hover{background:var(--panel-2);} tbody tr:last-child td{border-bottom:none;}
+  .code-tag{font-family:var(--mono);font-size:11.5px;background:var(--panel-3);color:var(--accent);padding:2px 7px;border-radius:5px;letter-spacing:.3px;}
+  .row-actions{display:flex;gap:6px;justify-content:flex-end;}
+  .empty-state{text-align:center;padding:40px 10px;color:var(--text-faint);font-size:13px;}
+
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+  .badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .b-info{background:rgba(73,179,194,.12);color:var(--accent);}
+  .b-warn{background:rgba(224,164,88,.12);color:var(--amber);}
+  .b-ok{background:rgba(111,207,127,.12);color:var(--success);}
+  .b-danger{background:rgba(226,104,95,.12);color:var(--danger);}
+  .b-muted{background:var(--panel-3);color:var(--text-dim);}
+
+  .stage-track{display:flex;align-items:center;gap:0;margin:4px 0;}
+  .stage-node{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;position:relative;}
+  .stage-circle{width:26px;height:26px;border-radius:50%;border:2px solid var(--border);background:var(--panel-2);display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;color:var(--text-faint);z-index:1;transition:.2s;}
+  .stage-node.done .stage-circle{background:var(--success-dim);border-color:var(--success);color:var(--success);}
+  .stage-node.active .stage-circle{background:var(--amber-dim);border-color:var(--amber);color:var(--amber);box-shadow:0 0 0 4px rgba(224,164,88,.15);}
+  .stage-node.skip .stage-circle{opacity:.3;border-style:dashed;}
+  .stage-node.stopped .stage-circle{border-color:var(--danger);color:var(--danger);}
+  .stage-label{font-size:10px;color:var(--text-faint);text-align:center;}
+  .stage-node.done .stage-label, .stage-node.active .stage-label{color:var(--text);}
+  .stage-line{position:absolute;top:13px;height:2px;background:var(--border);left:-50%;right:50%;z-index:0;}
+  .stage-node:first-child .stage-line{display:none;}
+  .stage-node.done .stage-line, .stage-node.active .stage-line{background:var(--success);}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(5,7,9,.6);backdrop-filter:blur(2px);display:none;align-items:flex-start;justify-content:center;z-index:500;padding:40px 16px;overflow-y:auto;}
+  .modal-overlay.show{display:flex;}
+  .modal{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:560px;padding:22px 24px;animation:modalIn .15s ease;}
+  .modal.wide{max-width:780px;}
+  @keyframes modalIn{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .modal-head h3{margin:0;font-size:15px;} .modal-close{background:none;border:none;color:var(--text-dim);font-size:18px;padding:2px 6px;}
+  .modal-close:hover{color:var(--text);}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;} .form-grid .full{grid-column:1/-1;}
+  .modal-actions{display:flex;justify-content:flex-start;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--border);}
+
+  .items-list{border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:10px;}
+  .items-list table{font-size:12.5px;} .items-list thead th{background:var(--panel-2);}
+  .toast-wrap{position:fixed;bottom:20px;left:20px;z-index:1000;display:flex;flex-direction:column;gap:8px;}
+  .toast{background:var(--panel-3);border:1px solid var(--border);border-right:3px solid var(--success);padding:10px 16px;border-radius:8px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.3);animation:toastIn .2s ease;}
+  .toast.err{border-right-color:var(--danger);}
+  @keyframes toastIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;flex-wrap:wrap;}
+  .tab{padding:9px 14px;font-size:12.5px;font-weight:600;color:var(--text-dim);border-bottom:2px solid transparent;cursor:pointer;}
+  .tab:hover{color:var(--text);} .tab.active{color:var(--accent);border-color:var(--accent);}
+
+  .ledger-row{display:flex;justify-content:space-between;padding:9px 4px;border-bottom:1px solid var(--panel-2);font-size:13px;}
+  .ledger-row:last-child{border-bottom:none;}
+  .hidden{display:none !important;}
+  .kv{display:flex;justify-content:space-between;font-size:12.5px;padding:6px 0;color:var(--text-dim);} .kv b{color:var(--text);font-weight:600;}
+  .section-note{background:var(--panel-2);border:1px dashed var(--border);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text-dim);margin-bottom:14px;}
+  .link-btn{background:none;border:none;color:var(--accent);font-size:12.5px;font-weight:600;padding:0;}
+  @media(max-width:900px){ #app.show{grid-template-columns:1fr;} .sidebar{position:static;height:auto;} }
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-glyph">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M4 4h16v10a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V4z" stroke="#49b3c2" stroke-width="1.6"/><path d="M9 20h6" stroke="#49b3c2" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </div>
+    <p class="brand-title">Glass Manager</p>
+    <p class="brand-sub">مدیریت تولید و حسابداری شیشه پروژکتور</p>
+    <div class="field"><label>نام کاربری</label><input id="loginUser" type="text" placeholder="مثلاً admin" autocomplete="off"></div>
+    <div class="field"><label>رمز عبور</label><input id="loginPass" type="password" placeholder="••••••••"></div>
+    <button class="btn btn-primary btn-block" onclick="doLogin()">ورود به سیستم</button>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-hint">اولین بار؟ با نام کاربری <b style="color:var(--text)">admin</b> و رمز <b style="color:var(--text)">admin</b> وارد شوید و بعد از ورود رمز را تغییر دهید.</div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="main" id="mainArea"></div>
+  <div class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-brand-glyph"></div>
+      <div><b>Glass Manager</b><span>نسخه ۱.۰.۰</span></div>
+    </div>
+    <div id="navList"></div>
+    <div class="sb-footer">
+      <div class="sb-user">
+        <div><div class="sb-user-name" id="sbUserName">-</div><div class="sb-user-role" id="sbUserRole">-</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">خروج</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay"><div class="modal" id="modalBox"></div></div>
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* ============================================================
+   Glass Manager — Offline single-file app
+   Data persists in this browser's localStorage on this machine.
+   ============================================================ */
+
+const STORAGE_KEY = "glassManagerData_v1";
+const SESSION_KEY = "glassManagerSession_v1";
+
+const STAGE_DEFS = [
+  { key:"Cutting",   label:"برش" },
+  { key:"Grinding",  label:"ساب و شستشو" },
+  { key:"Printing",  label:"چاپ" },
+  { key:"Tempering", label:"سکوریت" },
+  { key:"Packaging", label:"بسته‌بندی" },
+  { key:"Delivery",  label:"تحویل" },
+];
+const ORDER_STATUSES = ["ثبت شده","در انتظار برش","در حال تولید","متوقف شده","آماده تحویل","تحویل شده","لغو شده"];
+const PAYMENT_METHODS = ["نقدی","چک","کارت به کارت","سایر"];
+const PRICE_TYPES = [{v:"unit",l:"قیمت هر شیشه"},{v:"total",l:"قیمت کل سفارش"}];
+
+/* ---------------- utils ---------------- */
+function uid(){ return 'x'+Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
+function nowISO(){ return new Date().toISOString(); }
+function money(n){ n = Number(n||0); return n.toLocaleString('fa-IR'); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// Gregorian -> Jalali (compact, valid for standard use)
+function toJalali(gy,gm,gd){
+  var g_d_m=[0,31,59,90,120,151,181,212,243,273,304,334];
+  var jy=(gy<=1600)?0:979; gy-=(gy<=1600)?621:1600;
+  var gy2=(gm>2)?(gy+1):gy;
+  var days=(365*gy)+(parseInt((gy2+3)/4))-(parseInt((gy2+99)/100))+(parseInt((gy2+399)/400))-80+gd+g_d_m[gm-1];
+  jy+=33*parseInt(days/12053); days%=12053;
+  jy+=4*parseInt(days/1461); days%=1461;
+  if(days>365){ jy+=parseInt((days-1)/365); days=(days-1)%365; }
+  var jm=(days<186)?1+parseInt(days/31):7+parseInt((days-186)/30);
+  var jd=1+((days<186)?(days%31):((days-186)%30));
+  return [jy,jm,jd];
+}
+function fdate(iso){
+  if(!iso) return '-';
+  var d = new Date(iso);
+  var j = toJalali(d.getFullYear(), d.getMonth()+1, d.getDate());
+  return j[0]+'/'+String(j[1]).padStart(2,'0')+'/'+String(j[2]).padStart(2,'0');
+}
+function todayISO(){ return nowISO(); }
+
+async function sha256(text){
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function toast(msg, isErr){
+  const wrap = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast'+(isErr?' err':'');
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(()=>t.remove(), 3200);
+}
+function confirmDlg(msg){ return window.confirm(msg); }
+
+/* ---------------- data layer ---------------- */
+let DB = null;
+
+function defaultData(){
+  return {
+    meta:{ version:"1.0.0" },
+    settings:{ companyName:"کارگاه شیشه پروژکتور", phone:"", address:"" },
+    counters:{ customer:0, brand:0, glass:0, order:0, proforma:0, invoice:0, delivery:0, supplier:0 },
+    users:[],
+    customers:[], brands:[], glassSpecs:[],
+    orders:[], proformas:[], cuttings:[],
+    suppliers:[], invoices:[], purchases:[], transactions:[],
+    logs:[]
+  };
+}
+function loadDB(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) DB = JSON.parse(raw);
+    else DB = defaultData();
+  }catch(e){ DB = defaultData(); }
+  if(!DB.users) DB.users = [];
+}
+function saveDB(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
+
+function nextCode(prefix, counterKey){
+  DB.counters[counterKey] = (DB.counters[counterKey]||0) + 1;
+  return prefix + '-' + String(DB.counters[counterKey]).padStart(6,'0');
+}
+function log(action, details){
+  DB.logs.unshift({ id:uid(), user: currentUser ? currentUser.name : '-', action, details: details||'', date: nowISO() });
+  if(DB.logs.length>500) DB.logs.length = 500;
+}
+
+/* ---------------- auth ---------------- */
+let currentUser = null;
+
+async function ensureSeedAdmin(){
+  if(DB.users.length===0){
+    const hash = await sha256('admin');
+    DB.users.push({ id:uid(), username:'admin', passwordHash:hash, name:'مدیر سیستم', role:'Admin', isActive:true, createdDate:nowISO() });
+    saveDB();
+  }
+}
+
+async function doLogin(){
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  if(!u || !p){ errEl.textContent = 'نام کاربری و رمز عبور را وارد کنید.'; return; }
+  const hash = await sha256(p);
+  const user = DB.users.find(x=>x.username===u && x.passwordHash===hash && x.isActive);
+  if(!user){ errEl.textContent = 'نام کاربری یا رمز عبور اشتباه است.'; return; }
+  currentUser = user;
+  sessionStorage.setItem(SESSION_KEY, user.id);
+  log('ورود به سیستم', user.name);
+  saveDB();
+  showApp();
+}
+function logout(){
+  currentUser = null;
+  sessionStorage.removeItem(SESSION_KEY);
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginPass').value='';
+}
+function isAdmin(){ return currentUser && currentUser.role==='Admin'; }
+function requireAdmin(){
+  if(!isAdmin()){ toast('این عملیات فقط برای مدیر سیستم مجاز است.', true); return false; }
+  return true;
+}
+
+/* ---------------- app boot ---------------- */
+window.addEventListener('DOMContentLoaded', async ()=>{
+  loadDB();
+  await ensureSeedAdmin();
+  const sid = sessionStorage.getItem(SESSION_KEY);
+  if(sid){
+    const u = DB.users.find(x=>x.id===sid && x.isActive);
+    if(u){ currentUser = u; showApp(); return; }
+  }
+  document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+  document.getElementById('loginUser').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+});
+
+function showApp(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').classList.add('show');
+  document.getElementById('sbUserName').textContent = currentUser.name;
+  document.getElementById('sbUserRole').textContent = currentUser.role==='Admin' ? 'مدیر سیستم' : 'کاربر';
+  renderNav();
+  navigate('dashboard');
+}
+
+/* ---------------- navigation ---------------- */
+const NAV = [
+  { group:"اصلی", items:[
+    {id:'dashboard', label:'داشبورد'},
+    {id:'search', label:'جستجوی کلی'},
+  ]},
+  { group:"مشتریان و محصول", items:[
+    {id:'customers', label:'مشتریان'},
+    {id:'glassSpecs', label:'مشخصات شیشه'},
+  ]},
+  { group:"فروش و تولید", items:[
+    {id:'proformas', label:'پیش‌فاکتورها'},
+    {id:'orders', label:'سفارش‌ها'},
+    {id:'cuttings', label:'مدیریت برش'},
+  ]},
+  { group:"حسابداری", items:[
+    {id:'invoices', label:'فاکتور فروش'},
+    {id:'suppliers', label:'تامین‌کنندگان'},
+    {id:'purchases', label:'خریدها'},
+    {id:'transactions', label:'دریافت و پرداخت'},
+  ]},
+  { group:"سیستم", items:[
+    {id:'reports', label:'گزارش‌ها'},
+    {id:'settings', label:'تنظیمات و بکاپ'},
+    {id:'logs', label:'تاریخچه فعالیت'},
+  ]},
+];
+let currentPage = 'dashboard';
+function renderNav(){
+  const el = document.getElementById('navList');
+  let html = '';
+  NAV.forEach(g=>{
+    html += `<div class="nav-label">${g.group}</div>`;
+    g.items.forEach(it=>{
+      html += `<div class="nav-item ${currentPage===it.id?'active':''}" onclick="navigate('${it.id}')"><span class="dot"></span>${it.label}</div>`;
+    });
+  });
+  el.innerHTML = html;
+}
+function navigate(page){
+  currentPage = page;
+  renderNav();
+  const renderers = {
+    dashboard: renderDashboard, search: renderSearch,
+    customers: renderCustomers, glassSpecs: renderGlassSpecs,
+    proformas: renderProformas, orders: renderOrders, cuttings: renderCuttings,
+    invoices: renderInvoices, suppliers: renderSuppliers, purchases: renderPurchases, transactions: renderTransactions,
+    reports: renderReports, settings: renderSettings, logs: renderLogs,
+  };
+  (renderers[page]||renderDashboard)();
+  window.scrollTo(0,0);
+}
+
+/* ---------------- modal helpers ---------------- */
+function openModal(html, wide){
+  document.getElementById('modalBox').className = 'modal' + (wide?' wide':'');
+  document.getElementById('modalBox').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('show'); }
+document.getElementById('modalOverlay').addEventListener('click', e=>{ if(e.target.id==='modalOverlay') closeModal(); });
+
+/* ---------------- lookups ---------------- */
+const custName = id => { const c = DB.customers.find(x=>x.id===id); return c ? c.name : '-'; };
+const brandName = id => { const b = DB.brands.find(x=>x.id===id); return b ? b.name : '-'; };
+const glassName = id => { const g = DB.glassSpecs.find(x=>x.id===id); return g ? g.name : '-'; };
+const supName = id => { const s = DB.suppliers.find(x=>x.id===id); return s ? s.name : '-'; };
+function statusBadge(status){
+  const map = {
+    'ثبت شده':'b-info', 'در انتظار برش':'b-warn', 'در حال تولید':'b-warn',
+    'متوقف شده':'b-danger', 'آماده تحویل':'b-info', 'تحویل شده':'b-ok', 'لغو شده':'b-muted'
+  };
+  return `<span class="badge ${map[status]||'b-muted'}">${esc(status)}</span>`;
+}
+
+/* ================= DASHBOARD ================= */
+function renderDashboard(){
+  const activeOrders = DB.orders.filter(o=>!o.isArchived && o.status!=='تحویل شده' && o.status!=='لغو شده');
+  const stoppedOrders = DB.orders.filter(o=>o.status==='متوقف شده');
+  const deliveredOrders = DB.orders.filter(o=>o.status==='تحویل شده');
+  const balance = customerBalance(null);
+  const totalSales = DB.invoices.reduce((s,i)=>s+Number(i.totalAmount||0),0);
+
+  document.getElementById('mainArea').innerHTML = `
+    <div class="topbar">
+      <div><h1 class="page-title">داشبورد</h1><p class="page-sub">نمای کلی وضعیت کارگاه، ${esc(currentUser.name)} عزیز</p></div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><i style="background:var(--accent)"></i><b>${DB.customers.filter(c=>c.isActive).length.toLocaleString('fa-IR')}</b><span>مشتری فعال</span></div>
+      <div class="stat-card"><i style="background:var(--amber)"></i><b>${activeOrders.length.toLocaleString('fa-IR')}</b><span>سفارش در جریان</span></div>
+      <div class="stat-card"><i style="background:var(--danger)"></i><b>${stoppedOrders.length.toLocaleString('fa-IR')}</b><span>سفارش متوقف شده</span></div>
+      <div class="stat-card"><i style="background:var(--success)"></i><b>${deliveredOrders.length.toLocaleString('fa-IR')}</b><span>سفارش تحویل شده</span></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>سفارش‌های در جریان</h3><span class="muted">${activeOrders.length} مورد</span></div>
+      ${activeOrders.length===0 ? '<div class="empty-state">سفارش فعالی ثبت نشده است.</div>' : `
+      <table><thead><tr><th>کد</th><th>مشتری</th><th>تاریخ</th><th>وضعیت</th><th>مرحله فعلی</th><th></th></tr></thead>
+      <tbody>${activeOrders.slice(0,8).map(o=>`
+        <tr>
+          <td><span class="code-tag">${o.code}</span></td>
+          <td>${esc(custName(o.customerId))}</td>
+          <td>${fdate(o.date)}</td>
+          <td>${statusBadge(o.status)}</td>
+          <td>${currentStageLabel(o)}</td>
+          <td class="row-actions"><button class="btn btn-sm" onclick="openOrderDetail('${o.id}')">مشاهده</button></td>
+        </tr>`).join('')}</tbody></table>`}
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>وضعیت مالی کلی</h3></div>
+      <div class="kv"><span>جمع فاکتورهای فروش</span><b>${money(totalSales)} تومان</b></div>
+      <div class="kv"><span>تعداد پیش‌فاکتور باز</span><b>${DB.proformas.filter(p=>p.status!=='تبدیل به سفارش').length.toLocaleString('fa-IR')}</b></div>
+      <div class="kv"><span>تعداد تامین‌کننده</span><b>${DB.suppliers.length.toLocaleString('fa-IR')}</b></div>
+    </div>
+  `;
+}
+function currentStageLabel(order){
+  if(order.status==='تحویل شده') return '<span class="badge b-ok">تحویل شده</span>';
+  if(order.status==='لغو شده') return '<span class="badge b-muted">لغو شده</span>';
+  for(const s of STAGE_DEFS){
+    if(s.key==='Tempering' && !order.needsTempering) continue;
+    const st = order.stages[s.key];
+    if(st.status!=='done') return `<span class="badge ${order.status==='متوقف شده'?'b-danger':'b-warn'}">${s.label}</span>`;
+  }
+  return '<span class="badge b-ok">تکمیل</span>';
+}
+
+/* ================= GLOBAL SEARCH ================= */
+function renderSearch(){
+  document.getElementById('mainArea').innerHTML = `
+    <div class="topbar">
+      <div><h1 class="page-title">جستجوی کلی</h1><p class="page-sub">جستجو در مشتری، سفارش، فاکتور و تولید</p></div>
+    </div>
+    <div class="card">
+      <div class="search-box" style="min-width:100%"><input id="globalSearchInput" placeholder="نام، کد یا شماره را وارد کنید..." oninput="runGlobalSearch()"></div>
+    </div>
+    <div id="searchResults" style="margin-top:16px;"></div>
+  `;
+  document.getElementById('globalSearchInput').focus();
+}
+function runGlobalSearch(){
+  const q = document.getElementById('globalSearchInput').value.trim().toLowerCase();
+  const out = document.getElementById('searchResults');
+  if(!q){ out.innerHTML=''; return; }
+  const rows = [];
+  DB.customers.forEach(c=>{ if((c.name+c.companyName+c.code).toLowerCase().includes(q)) rows.push({type:'مشتری',code:c.code,title:c.name,action:()=>openCustomerModal(c.id)}); });
+  DB.orders.forEach(o=>{ if((o.code+custName(o.customerId)).toLowerCase().includes(q)) rows.push({type:'سفارش',code:o.code,title:custName(o.customerId)+' — '+o.status,action:()=>openOrderDetail(o.id)}); });
+  DB.invoices.forEach(i=>{ if((i.code+custName(i.customerId)).toLowerCase().includes(q)) rows.push({type:'فاکتور',code:i.code,title:custName(i.customerId)+' — '+money(i.totalAmount)+' تومان',action:()=>openInvoiceModal(i.id)}); });
+  DB.glassSpecs.forEach(g=>{ if((g.name+g.code).toLowerCase().includes(q)) rows.push({type:'مشخصات شیشه',code:g.code,title:g.name,action:()=>openGlassSpecModal(g.id)}); });
+  if(rows.length===0){ out.innerHTML = '<div class="card"><div class="empty-state">نتیجه‌ای یافت نشد.</div></div>'; return; }
+  window.__searchRows = rows;
+  out.innerHTML = `<div class="card"><table><thead><tr><th>نوع</th><th>کد</th><th>عنوان</th><th></th></tr></thead><tbody>
+    ${rows.map((r,i)=>`<tr><td><span class="badge b-info">${r.type}</span></td><td><span class="code-tag">${esc(r.code)}</span></td><td>${esc(r.title)}</td><td class="row-actions"><button class="btn btn-sm" onclick="window.__searchRows[${i}].action()">مشاهده</button></td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+
+/* ================= CUSTOMERS + BRANDS ================= */
+function renderCustomers(){
+  const list = DB.customers.filter(c=> !window.__custFilter || (c.name+c.companyName+c.code).toLowerCase().includes(window.__custFilter));
+  document.getElementById('mainArea').innerHTML = `
+    <div class="topbar">
+      <div><h1 class="page-title">مشتریان</h1><p class="page-sub">${DB.customers.length.toLocaleString('fa-IR')} مشتری ثبت شده</p></div>
+      <div style="display:flex;gap:10px;">
+        <div class="search-box"><input placeholder="جستجوی مشتری..." oninput="window.__custFilter=this.value.toLowerCase();renderCustomers();" value="${window.__custFilter?esc(window.__custFilter):''}"></div>
+        <button class="btn btn-primary" onclick="openCustomerModal()">+ مشتری جدید</button>
+      </div>
+    </div>
+    <div class="card">
+      ${list.length===0 ? '<div class="empty-state">مشتری‌ای ثبت نشده است.</div>' : `
+      <table><thead><tr><th>کد</th><th>نام</th><th>شرکت</th><th>تماس</th><th>تعداد برند</th><th>وضعیت</th><th></th></tr></thead>
+      <tbody>${list.map(c=>`
+        <tr>
+          <td><span class="code-tag">${c.code}</span></td>
+          <td><b>${esc(c.name)}</b></td>
+          <td>${esc(c.companyName)||'-'}</td>
+          <td>${esc(c.phone)||'-'}</td>
+          <td>${DB.brands.filter(b=>b.customerId===c.id).length.toLocaleString('fa-IR')}</td>
+          <td>${c.isActive?'<span class="badge b-ok">فعال</span>':'<span class="badge b-muted">غیرفعال</span>'}</td>
+          <td class="row-actions">
+            <button class="btn btn-sm" onclick="openCustomerModal('${c.id}')">جزئیات</button>
+          </td>
+        </tr>`).join('')}</tbody></table>`}
+    </div>
+  `;
+}
+function openCustomerModal(id){
+  const c = id ? DB.customers.find(x=>x.id===id) : null;
+  const brands = c ? DB.brands.filter(b=>b.customerId===c.id) : [];
+  openModal(`
+    <div class="modal-head"><h3>${c?'جزئیات و ویرایش مشتری':'مشتری جدید'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${c?`<div class="tabs">
+      <div class="tab active" onclick="switchTab(this,'custInfoTab')">اطلاعات</div>
+      <div class="tab" onclick="switchTab(this,'custBrandsTab')">برندها (${brands.length})</div>
+      <div class="tab" onclick="switchTab(this,'custLedgerTab')">حساب مشتری</div>
+    </div>`:''}
+    <div id="custInfoTab">
+      <div class="form-grid">
+        <div class="field full"><label>نام مشتری *</label><input id="cf_name" value="${c?esc(c.name):''}"></div>
+        <div class="field"><label>نام شرکت (اختیاری)</label><input id="cf_company" value="${c?esc(c.companyName||''):''}"></div>
+        <div class="field"><label>شماره تماس</label><input id="cf_phone" value="${c?esc(c.phone||''):''}"></div>
+        <div class="field full"><label>آدرس</label><input id="cf_address" value="${c?esc(c.address||''):''}"></div>
+        <div class="field full"><label>توضیحات</label><textarea id="cf_desc">${c?esc(c.description||''):''}</textarea></div>
+        ${c?`<div class="field"><label>وضعیت</label><select id="cf_active"><option value="1" ${c.isActive?'selected':''}>فعال</option><option value="0" ${!c.isActive?'selected':''}>غیرفعال (خروج از چرخه)</option></select></div>`:''}
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="saveCustomer('${c?c.id:''}')">${c?'ذخیره تغییرات':'ثبت مشتری'}</button>
+        ${c && isAdmin() ? `<button class="btn btn-danger" onclick="deleteCustomer('${c.id}')">حذف کامل</button>` : ''}
+        <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+      </div>
+    </div>
+    ${c?`
+    <div id="custBrandsTab" class="hidden">
+      <div class="items-list"><table><thead><tr><th>کد</th><th>نام برند</th><th>توضیحات</th><th></th></tr></thead>
+      <tbody>${brands.length===0?'<tr><td colspan="4" style="text-align:center;color:var(--text-faint);padding:16px;">برندی ثبت نشده</td></tr>':brands.map(b=>`
+        <tr><td><span class="code-tag">${b.code}</span></td><td>${esc(b.name)}</td><td>${esc(b.description||'-')}</td>
+        <td class="row-actions"><button class="btn btn-sm" onclick="openBrandModal('${c.id}','${b.id}')">ویرایش</button></td></tr>`).join('')}</tbody></table></div>
+      <button class="btn btn-sm" onclick="openBrandModal('${c.id}')">+ برند جدید</button>
+    </div>
+    <div id="custLedgerTab" class="hidden">${renderLedgerHTML('customer', c.id)}</div>
+    `:''}
+  `);
+}
+function switchTab(el, tabId){
+  const tabs = el.parentElement.querySelectorAll('.tab');
+  tabs.forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['custInfoTab','custBrandsTab','custLedgerTab'].forEach(id=>{
+    const e = document.getElementById(id); if(e) e.classList.add('hidden');
+  });
+  document.getElementById(tabId).classList.remove('hidden');
+}
+function saveCustomer(id){
+  const name = document.getElementById('cf_name').value.trim();
+  if(!name){ toast('نام مشتری الزامی است.', true); return; }
+  const data = {
+    name,
+    companyName: document.getElementById('cf_company').value.trim(),
+    phone: document.getElementById('cf_phone').value.trim(),
+    address: document.getElementById('cf_address').value.trim(),
+    description: document.getElementById('cf_desc').value.trim(),
+  };
+  if(id){
+    const c = DB.customers.find(x=>x.id===id);
+    Object.assign(c, data);
+    c.isActive = document.getElementById('cf_active').value==='1';
+    log('ویرایش مشتری', c.code);
+    toast('اطلاعات مشتری ذخیره شد.');
+  }else{
+    const c = { id:uid(), code:nextCode('CUS','customer'), ...data, createdDate:nowISO(), isActive:true };
+    DB.customers.push(c);
+    log('ثبت مشتری جدید', c.code);
+    toast('مشتری جدید ثبت شد.');
+  }
+  saveDB(); closeModal(); renderCustomers();
+}
+function deleteCustomer(id){
+  if(!requireAdmin()) return;
+  if(!confirmDlg('حذف کامل مشتری و تمام اطلاعات مرتبط قابل بازگشت نیست. ادامه می‌دهید؟')) return;
+  DB.customers = DB.customers.filter(x=>x.id!==id);
+  log('حذف کامل مشتری', id);
+  saveDB(); closeModal(); renderCustomers();
+}
+function openBrandModal(customerId, brandId){
+  const b = brandId ? DB.brands.find(x=>x.id===brandId) : null;
+  openModal(`
+    <div class="modal-head"><h3>${b?'ویرایش برند':'برند جدید'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="field"><label>نام برند *</label><input id="bf_name" value="${b?esc(b.name):''}"></div>
+    <div class="field"><label>توضیحات</label><textarea id="bf_desc">${b?esc(b.description||''):''}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveBrand('${customerId}','${b?b.id:''}')">${b?'ذخیره':'ثبت برند'}</button>
+      <button class="btn btn-ghost" onclick="openCustomerModal('${customerId}')">بازگشت</button>
+    </div>
+  `);
+}
+function saveBrand(customerId, id){
+  const name = document.getElementById('bf_name').value.trim();
+  if(!name){ toast('نام برند الزامی است.', true); return; }
+  const desc = document.getElementById('bf_desc').value.trim();
+  if(id){
+    const b = DB.brands.find(x=>x.id===id);
+    b.name = name; b.description = desc;
+    log('ویرایش برند', b.code);
+  }else{
+    const b = { id:uid(), code:nextCode('BRD','brand'), name, customerId, description:desc };
+    DB.brands.push(b);
+    log('ثبت برند جدید', b.code);
+  }
+  saveDB(); toast('برند ذخیره شد.'); openCustomerModal(customerId);
+}
+
+/* ================= GLASS SPECIFICATIONS ================= */
+function renderGlassSpecs(){
+  document.getElementById('mainArea').innerHTML = `
+    <div class="topbar">
+      <div><h1 class="page-title">مشخصات شیشه</h1><p class="page-sub">${DB.glassSpecs.length.toLocaleString('fa-IR')} مورد ثبت شده</p></div>
+      <button class="btn btn-primary" onclick="openGlassSpecModal()">+ مشخصات جدید</button>
+    </div>
+    <div class="card">
+      ${DB.glassSpecs.length===0?'<div class="empty-state">مشخصات شیشه‌ای ثبت نشده است. ابتدا حداقل یک مشتری و برند بسازید.</div>':`
+      <table><thead><tr><th>کد</th><th>نام</th><th>برند</th><th>IP</th><th>W</th><th>سکوریت</th><th>ابعاد</th><th></th></tr></thead>
+      <tbody>${DB.glassSpecs.map(g=>`
+        <tr>
+          <td><span class="code-tag">${g.code}</span></td>
+          <td><b>${esc(g.name)}</b></td>
+          <td>${esc(brandName(g.brandId))}</td>
+          <td>${g.hasIP?esc(g.ip):'<span style="color:var(--text-faint)">ندارد</span>'}</td>
+          <td>${g.hasW?esc(g.w):'<span style="color:var(--text-faint)">ندارد</span>'}</td>
+          <td>${g.isTempered?'<span class="badge b-ok">دارد</span>':'<span class="badge b-muted">ندارد</span>'}</td>
+          <td>${esc(g.dimensions||'-')}</td>
+          <td class="row-actions"><button class="btn btn-sm" onclick="openGlassSpecModal('${g.id}')">ویرایش</button></td>
+        </tr>`).join('')}</tbody></table>`}
+    </div>
+  `;
+}
+function brandOptions(selectedId){
+  if(DB.brands.length===0) return '<option value="">— ابتدا برند بسازید —</option>';
+  return DB.brands.map(b=>`<option value="${b.id}" ${b.id===selectedId?'selected':''}>${esc(b.name)} (${esc(custName(b.customerId))})</option>`).join('');
+}
+function openGlassSpecModal(id){
+  const g = id ? DB.glassSpecs.find(x=>x.id===id) : null;
+  if(!g && DB.brands.length===0){ toast('ابتدا باید حداقل یک مشتری و برند ثبت کنید.', true); return; }
+  openModal(`
+    <div class="modal-head"><h3>${g?'ویرایش مشخصات شیشه':'مشخصات شیشه جدید'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field full"><label>نام مشخصات *</label><input id="gf_name" value="${g?esc(g.name):''}"></div>
+      <div class="field full"><label>برند *</label><select id="gf_brand">${brandOptions(g?g.brandId:null)}</select></div>
+      <div class="field">
+        <label><input type="checkbox" id="gf_hasip" onchange="document.getElementById('gf_ipval').disabled=!this.checked" ${g&&g.hasIP?'checked':''}> دارای IP</label>
+        <input id="gf_ipval" placeholder="مثلاً IP65" value="${g?esc(g.ip||''):''}" style="margin-top:6px;" ${!(g&&g.hasIP)?'disabled':''}>
+      </div>
+      <div class="field">
+        <label><input type="checkbox" id="gf_hasw" onchange="document.getElementById('gf_wval').disabled=!this.checked" ${g&&g.hasW?'checked':''}> دارای W</label>
+        <input id="gf_wval" placeholder="مثلاً 100W" value="${g?esc(g.w||''):''}" style="margin-top:6px;" ${!(g&&g.hasW)?'disabled':''}>
+      </div>
+      <div class="field"><label>ابعاد</label><input id="gf_dim" placeholder="مثلاً 300×200 mm" value="${g?esc(g.dimensions||''):''}"></div>
+      <div class="field"><label>سکوریت</label><select id="gf_temp"><option value="0" ${g&&!g.isTempered?'selected':''}>ندارد</option><option value="1" ${g&&g.isTempered?'selected':''}>دارد</option></select></div>
+      <div class="field full"><label>توضیحات</label><textarea id="gf_desc">${g?esc(g.description||''):''}</textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveGlassSpec('${g?g.id:''}')">${g?'ذخیره تغییرات':'ثبت مشخصات'}</button>
+      ${g && isAdmin() ? `<button class="btn btn-danger" onclick="deleteGlassSpec('${g.id}')">حذف</button>` : ''}
+      <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+    </div>
+  `);
+}
+function saveGlassSpec(id){
+  const name = document.getElementById('gf_name').value.trim();
+  const brandId = document.getElementById('gf_brand').value;
+  if(!name || !brandId){ toast('نام مشخصات و برند الزامی است.', true); return; }
+  const data = {
+    name, brandId,
+    hasIP: document.getElementById('gf_hasip').checked,
+    ip: document.getElementById('gf_ipval').value.trim(),
+    hasW: document.getElementById('gf_hasw').checked,
+    w: document.getElementById('gf_wval').value.trim(),
+    dimensions: document.getElementById('gf_dim').value.trim(),
+    isTempered: document.getElementById('gf_temp').value==='1',
+    description: document.getElementById('gf_desc').value.trim(),
+  };
+  if(id){
+    Object.assign(DB.glassSpecs.find(x=>x.id===id), data);
+    log('ویرایش مشخصات شیشه', name);
+  }else{
+    const g = { id:uid(), code:nextCode('GLS','glass'), ...data };
+    DB.glassSpecs.push(g);
+    log('ثبت مشخصات شیشه جدید', g.code);
+  }
+  saveDB(); toast('ذخیره شد.'); closeModal(); renderGlassSpecs();
+}
+function deleteGlassSpec(id){
+  if(!requireAdmin()) return;
+  if(!confirmDlg('حذف کامل این مشخصات شیشه؟')) return;
+  DB.glassSpecs = DB.glassSpecs.filter(x=>x.id!==id);
+  saveDB(); closeModal(); renderGlassSpecs();
+}
+
+/* ================= PROFORMAS ================= */
+let proformaDraftItems = [];
+function renderProformas(){
+  document.getElementById('mainArea').innerHTML = `
+    <div class="topbar">
+      <div><h1 class="page-title">پیش‌فاکتورها</h1><p class="page-sub">${DB.proformas.length.toLocaleString('fa-IR')} پیش‌فاکتور</p></div>
+      <button class="btn btn-primary" onclick="openProformaModal()">+ پیش‌فاکتور جدید</button>
+    </div>
+    <div class="card">
+      ${DB.proformas.length===0?'<div class="empty-state">پیش‌فاکتوری ثبت نشده است.</div>':`
+      <table><thead><tr><th>شماره</th><th>مشتری</th><th>تاریخ</th><th>مبلغ کل</th><th>وضعیت</th><th></th></tr></thead>
+      <tbody>${DB.proformas.slice().reverse().map(p=>`
+        <tr>
+          <td><span class="code-tag">${p.code}</span></td>
+          <td>${esc(custName(p.customerId))}</td>
+          <td>${fdate(p.date)}</td>
+          <td>${money(p.totalAmount)} تومان</td>
+          <td><span class="badge b-info">${esc(p.status)}</span></td>
+          <td class="row-actions">
+            <button class="btn btn-sm" onclick="openProformaModal('${p.id}')">جزئیات</button>
+            <button class="btn btn-sm btn-primary" onclick="convertProformaToOrder('${p.id}')">تبدیل به سفارش</button>
+          </td>
+        </tr>`).join('')}</tbody></table>`}
+    </div>
+  `;
+}
+function glassSpecOptions(selected){
+  if(DB.glassSpecs.length===0) return '<option value="">— مشخصات شیشه‌ای ثبت نشده —</option>';
+  return DB.glassSpecs.map(g=>`<option value="${g.id}" ${g.id===selected?'selected':''}>${esc(g.name)}</option>`).join('');
+}
+function customerOptions(selected){
+  const active = DB.customers.filter(c=>c.isActive);
+  if(active.length===0) return '<option value="">— ابتدا مشتری بسازید —</option>';
+  return active.map(c=>`<option value="${c.id}" ${c.id===selected?'selected':''}>${esc(c.name)}${c.companyName?' - '+esc(c.companyName):''}</option>`).join('');
+}
+function openProformaModal(id){
+  const p = id ? DB.proformas.find(x=>x.id===id) : null;
+  proformaDraftItems = p ? JSON.parse(JSON.stringify(p.items)) : [];
+  openModal(`
+    <div class="modal-head"><h3>${p?'جزئیات پیش‌فاکتور '+p.code:'پیش‌فاکتور جدید'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field"><label>مشتری *</label><select id="pf_customer">${customerOptions(p?p.customerId:null)}</select></div>
+      <div class="field"><label>وضعیت</label><select id="pf_status"><option ${p&&p.status==='باز'?'selected':''}>باز</option><option ${p&&p.status==='ارسال شده'?'selected':''}>ارسال شده</option><option ${p&&p.status==='تایید شده'?'selected':''}>تایید شده</option></select></div>
+      <div class="field full"><label>توضیحات</label><textarea id="pf_desc">${p?esc(p.description||''):''}</textarea></div>
+    </div>
+    <h4 style="margin:14px 0 8px;font-size:13px;">آیتم‌ها</h4>
+    <div id="pfItemsBox"></div>
+    <div class="form-grid" style="margin-top:8px;">
+      <div class="field"><label>مشخصات شیشه</label><select id="pf_item_glass">${glassSpecOptions()}</select></div>
+      <div class="field"><label>تعداد</label><input type="number" id="pf_item_qty" min="1" value="1"></div>
+      <div class="field"><label>قیمت واحد (تومان)</label><input type="number" id="pf_item_price" min="0" value="0"></div>
+      <div class="field" style="display:flex;align-items:flex-end;"><button class="btn btn-sm btn-block" onclick="addProformaItem()">+ افزودن آیتم</button></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveProforma('${p?p.id:''}')">${p?'ذخیره تغییرات':'ثبت پیش‌فاکتور'}</button>
+      <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+    </div>
+  `, true);
+  renderProformaItemsBox();
+}
+function renderProformaItemsBox(){
+  const box = document.getElementById('pfItemsBox');
+  if(!box) return;
+  let total = 0;
+  box.innerHTML = `<div class="items-list"><table><thead><tr><th>مشخصات</th><th>تعداد</th><th>قیمت واحد</th><th>جمع</th><th></th></tr></thead><tbody>
+    ${proformaDraftItems.length===0?'<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:14px;">آیتمی اضافه نشده</td></tr>':proformaDraftItems.map((it,i)=>{
+      const lineTotal = it.quantity*it.price; total+=lineTotal;
+      return `<tr><td>${esc(glassName(it.glassSpecId))}</td><td>${it.quantity.toLocaleString('fa-IR')}</td><td>${money(it.price)}</td><td>${money(lineTotal)}</td><td class="row-actions"><button class="btn btn-sm btn-danger" onclick="proformaDraftItems.splice(${i},1);renderProformaItemsBox();">حذف</button></td></tr>`;
+    }).join('')}
+  </tbody></table></div><div class="kv"><span>مبلغ کل</span><b>${money(total)} تومان</b></div>`;
+}
+function addProformaItem(){
+  const glassSpecId = document.getElementById('pf_item_glass').value;
+  const quantity = Number(document.getElementById('pf_item_qty').value);
+  const price = Number(document.getElementById('pf_item_price').value);
+  if(!glassSpecId || !quantity){ toast('مشخصات شیشه و تعداد را وارد کنید.', true); return; }
+  proformaDraftItems.push({ id:uid(), glassSpecId, quantity, price });
+  renderProformaItemsBox();
+}
+function saveProforma(id){
+  const customerId = document.getElementById('pf_customer').value;
+  if(!customerId){ toast('مشتری را انتخاب کنید.', true); return; }
+  if(proformaDraftItems.length===0){ toast('حداقل یک آیتم اضافه کنید.', true); return; }
+  const totalAmount = proformaDraftItems.reduce((s,it)=>s+it.quantity*it.price,0);
+  const data = { customerId, status: document.getElementById('pf_status').value, description: document.getElementById('pf_desc').value.trim(), items: proformaDraftItems, totalAmount };
+  if(id){
+    Object.assign(DB.proformas.find(x=>x.id===id), data);
+    log('ویرایش پیش‌فاکتور', id);
+  }else{
+    const p = { id:uid(), code:nextCode('PRO','proforma'), date:nowISO(), ...data };
+    DB.proformas.push(p);
+    log('ثبت پیش‌فاکتور', p.code);
+  }
+  saveDB(); toast('پیش‌فاکتور ذخیره شد.'); closeModal(); renderProformas();
+}
+function convertProformaToOrder(id){
+  const p = DB.proformas.find(x=>x.id===id);
+  if(!confirmDlg('یک سفارش جدید بر اساس این پیش‌فاکتور ساخته شود؟')) return;
+  const brandId = DB.glassSpecs.find(g=>g.id===p.items[0].glassSpecId)?.brandId || (DB.brands.find(b=>b.customerId===p.customerId)||{}).id;
+  const order = {
+    id:uid(), code:nextCode('ORD','order'), customerId:p.customerId, brandId: brandId||null,
+    date: nowISO(), status:'ثبت شده', description:'ایجاد شده از پیش‌فاکتور '+p.code, isArchived:false,
+    needsTempering: p.items.some(it=>{ const g=DB.glassSpecs.find(x=>x.id===it.glassSpecId); return g&&g.isTempered; }),
+    stages: makeEmptyStages(),
+    items: p.items.map(it=>({ id:uid(), glassSpecId:it.glassSpecId, quantity:it.quantity, priceType:'unit', unitPrice:it.price, totalPrice:it.quantity*it.price }))
+  };
+  DB.orders.push(order);
+  p.status = 'تبدیل به سفارش';
+  log('تبدیل پیش‌فاکتور به سفارش', p.code+' → '+order.code);
+  saveDB(); toast('سفارش '+order.code+' ساخته شد.'); closeModal(); navigate('orders');
+}
+function makeEmptyStages(){
+  const s = {};
+  STAGE_DEFS.forEach(d=> s[d.key] = { status:'pending', date:null, note:'' });
+  return s;
+}
+
+/* ================= ORDERS ================= */
+let orderDraftItems = [];
+function renderOrders(){
+  const showArchived = window.__showArchivedOrders;
+  const list = DB.orders.filter(o=> showArchived ? true : !o.isArchived);
+  document.getElementById('mainArea').innerHTML = `
+    <div class="topbar">
+      <div><h1 class="page-title">سفارش‌ها</h1><p class="page-sub">${list.length.toLocaleString('fa-IR')} سفارش</p></div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <label style="font-size:12px;color:var(--text-dim);display:flex;align-items:center;gap:6px;"><input type="checkbox" ${showArchived?'checked':''} onchange="window.__showArchivedOrders=this.checked;renderOrders();"> نمایش خارج‌شده از چرخه</label>
+        <button class="btn btn-primary" onclick="openOrderModal()">+ سفارش جدید</button>
+      </div>
+    </div>
+    <div class="card">
+      ${list.length===0?'<div class="empty-state">سفارشی ثبت نشده است.</div>':`
+      <table><thead><tr><th>کد</th><th>مشتری</th><th>برند</th><th>تاریخ</th><th>تعداد آیتم</th><th>وضعیت</th><th>مرحله فعلی</th><th></th></tr></thead>
+      <tbody>${list.slice().reverse().map(o=>`
+        <tr style="${o.isArchived?'opacity:.55':''}">
+          <td><span class="code-tag">${o.code}</span></td>
+          <td>${esc(custName(o.customerId))}</td>
+          <td>${esc(brandName(o.brandId))}</td>
+          <td>${fdate(o.date)}</td>
+          <td>${o.items.length.toLocaleString('fa-IR')}</td>
+          <td>${statusBadge(o.status)}</td>
+          <td>${currentStageLabel(o)}</td>
+          <td class="row-actions"><button class="btn btn-sm" onclick="openOrderDetail('${o.id}')">مشاهده</button></td>
+        </tr>`).join('')}</tbody></table>`}
+    </div>
+  `;
+}
+function openOrderModal(){
+  orderDraftItems = [];
+  openModal(`
+    <div class="modal-head"><h3>سفارش جدید</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field"><label>مشتری *</label><select id="of_customer" onchange="onOrderCustomerChange()">${customerOptions()}</select></div>
+      <div class="field"><label>برند *</label><select id="of_brand">${brandOptionsFor(null)}</select></div>
+      <div class="field full"><label>توضیحات</label><textarea id="of_desc"></textarea></div>
+    </div>
+    <h4 style="margin:14px 0 8px;font-size:13px;">آیتم‌های سفارش</h4>
+    <div id="ofItemsBox"></div>
+    <div class="form-grid" style="margin-top:8px;">
+      <div class="field"><label>مشخصات شیشه</label><select id="of_item_glass">${glassSpecOptions()}</select></div>
+      <div class="field"><label>تعداد</label><input type="number" id="of_item_qty" min="1" value="1"></div>
+      <div class="field"><label>نوع قیمت</label><select id="of_item_pricetype">${PRICE_TYPES.map(p=>`<option value="${p.v}">${p.l}</option>`).join('')}</select></div>
+      <div class="field"><label>مبلغ (تومان)</label><input type="number" id="of_item_price" min="0" value="0"></div>
+    </div>
+    <button class="btn btn-sm" onclick="addOrderItem()">+ افزودن آیتم</button>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveOrder()">ثبت سفارش</button>
+      <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+    </div>
+  `, true);
+  renderOrderItemsBox();
+}
+function brandOptionsFor(customerId){
+  const brands = customerId ? DB.brands.filter(b=>b.customerId===customerId) : DB.brands;
+  if(brands.length===0) return '<option value="">— برندی نیست —</option>';
+  return brands.map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join('');
+}
+function onOrderCustomerChange(){
+  const cid = document.getElementById('of_customer').value;
+  document.getElementById('of_brand').innerHTML = brandOptionsFor(cid);
+}
+function renderOrderItemsBox(){
+  const box = document.getElementById('ofItemsBox');
+  box.innerHTML = `<div class="items-list"><table><thead><tr><th>مشخصات</th><th>تعداد</th><th>نوع قیمت</th><th>مبلغ</th><th></th></tr></thead><tbody>
+  ${orderDraftItems.length===0?'<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:14px;">آیتمی اضافه نشده</td></tr>':orderDraftItems.map((it,i)=>`
+    <tr><td>${esc(glassName(it.glassSpecId))}</td><td>${it.quantity.toLocaleString('fa-IR')}</td><td>${it.priceType==='unit'?'واحد':'کل'}</td><td>${money(it.priceType==='unit'?it.unitPrice*it.quantity:it.totalPrice)}</td>
+    <td class="row-actions"><button class="btn btn-sm btn-danger" onclick="orderDraftItems.splice(${i},1);renderOrderItemsBox();">حذف</button></td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+function addOrderItem(){
+  const glassSpecId = document.getElementById('of_item_glass').value;
+  const quantity = Number(document.getElementById('of_item_qty').value);
+  const priceType = document.getElementById('of_item_pricetype').value;
+  const price = Number(document.getElementById('of_item_price').value);
+  if(!glassSpecId || !quantity){ toast('مشخصات شیشه و تعداد را وارد کنید.', true); return; }
+  orderDraftItems.push({
+    id:uid(), glassSpecId, quantity, priceType,
+    unitPrice: priceType==='unit'?price:0,
+    totalPrice: priceType==='total'?price:price*quantity,
+  });
+  renderOrderItemsBox();
+}
+function saveOrder(){
+  const customerId = document.getElementById('of_customer').value;
+  const brandId = document.getElementById('of_brand').value;
+  if(!customerId || !brandId){ toast('مشتری و برند الزامی است.', true); return; }
+  if(orderDraftItems.length===0){ toast('حداقل یک آیتم اضافه کنید.', true); return; }
+  const needsTempering = orderDraftItems.some(it=>{ const g=DB.glassSpecs.find(x=>x.id===it.glassSpecId); return g && g.isTempered; });
+  const order = {
+    id:uid(), code:nextCode('ORD','order'), customerId, brandId, date:nowISO(),
+    status:'ثبت شده', description: document.getElementById('of_desc').value.trim(),
+    isArchived:false, needsTempering, stages: makeEmptyStages(), items: orderDraftItems
+  };
+  DB.orders.push(order);
+  log('ثبت سفارش جدید', order.code);
+  saveDB(); toast('سفارش ثبت شد.'); closeModal(); navigate('orders');
+}
+
+function stageTrackHTML(order){
+  const visible = STAGE_DEFS.filter(s=> s.key!=='Tempering' || order.needsTempering);
+  let firstActiveFound = false;
+  return `<div class="stage-track">${visible.map(s=>{
+    const st = order.stages[s.key];
+    let cls = 'pending';
+    if(st.status==='done') cls='done';
+    else if(!firstActiveFound){ cls = order.status==='متوقف شده' ? 'stopped' : 'active'; firstActiveFound = true; }
+    return `<div class="stage-node ${cls}"><div class="stage-line"></div><div class="stage-circle">${st.status==='done'?'✓':''}</div><div class="stage-label">${s.label}</div></div>`;
+  }).join('')}</div>`;
+}
+
+function openOrderDetail(id){
+  const o = DB.orders.find(x=>x.id===id);
+  const visibleStages = STAGE_DEFS.filter(s=> s.key!=='Tempering' || o.needsTempering);
+  openModal(`
+    <div class="modal-head"><h3>سفارش ${o.code}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="kv"><span>مشتری</span><b>${esc(custName(o.customerId))}</b></div>
+    <div class="kv"><span>برند</span><b>${esc(brandName(o.brandId))}</b></div>
+    <div class="kv"><span>تاریخ ثبت</span><b>${fdate(o.date)}</b></div>
+    <div class="kv"><span>وضعیت</span><b>${statusBadge(o.status)}</b></div>
+    ${o.description?`<div class="kv"><span>توضیحات</span><b>${esc(o.description)}</b></div>`:''}
+
+    <h4 style="margin:16px 0 8px;font-size:13px;">آیتم‌های سفارش</h4>
+    <div class="items-list"><table><thead><tr><th>مشخصات</th><th>تعداد</th><th>مبلغ</th></tr></thead><tbody>
+    ${o.items.map(it=>`<tr><td>${esc(glassName(it.glassSpecId))}</td><td>${it.quantity.toLocaleString('fa-IR')}</td><td>${money(it.priceType==='unit'?it.unitPrice*it.quantity:it.totalPrice)} تومان</td></tr>`).join('')}
+    </tbody></table></div>
+
+    <h4 style="margin:16px 0 8px;font-size:13px;">مسیر تولید</h4>
+    ${stageTrackHTML(o)}
+    <div class="section-note">مطابق قانون کارگاه، سفارش می‌تواند در هر مرحله متوقف و بعداً ادامه یابد. مرحله فعال (نارنجی) قابل تکمیل یا رد کردن است.</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      ${visibleStages.map(s=>{
+        const st = o.stages[s.key];
+        return `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--panel-2);padding:8px 12px;border-radius:8px;">
+          <div><b style="font-size:12.5px;">${s.label}</b> ${st.date?`<span style="color:var(--text-faint);font-size:11px;">— ${fdate(st.date)}</span>`:''}</div>
+          <div style="display:flex;gap:6px;">
+            ${st.status!=='done'?`<button class="btn btn-sm" onclick="setStageStatus('${o.id}','${s.key}','done')">تکمیل شد</button>`:`<button class="btn btn-sm btn-ghost" onclick="setStageStatus('${o.id}','${s.key}','pending')">بازگشت به انتظار</button>`}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <h4 style="margin:16px 0 8px;font-size:13px;">وضعیت کلی سفارش</h4>
+    <div class="form-grid">
+      <div class="field"><label>وضعیت</label><select id="ord_status" onchange="setOrderStatus('${o.id}', this.value)">${ORDER_STATUSES.map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
+      <div class="field"><label>خروج از چرخه فعال</label><select id="ord_active" onchange="setOrderArchive('${o.id}', this.value==='1')"><option value="0" ${!o.isArchived?'selected':''}>در چرخه فعال</option><option value="1" ${o.isArchived?'selected':''}>خارج از چرخه (آرشیو)</option></select></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-sm" onclick="closeModal();navigate('cuttings');window.__cuttingOrderFilter='${o.id}';renderCuttings();">رفتن به برش این سفارش</button>
+      ${isAdmin() ? `<button class="btn btn-danger" onclick="deleteOrder('${o.id}')">حذف کامل سفارش</button>` : ''}
+      <button class="btn btn-ghost" onclick="closeModal()">بستن</button>
+    </div>
+  `, true);
+}
+function setStageStatus(orderId, stageKey, status){
+  const o = DB.orders.find(x=>x.id===orderId);
+  o.stages[stageKey].status = status;
+  o.stages[stageKey].date = status==='done' ? nowISO() : null;
+  // auto-advance order status based on progress
+  const visible = STAGE_DEFS.filter(s=> s.key!=='Tempering' || o.needsTempering);
+  const doneCount = visible.filter(s=>o.stages[s.key].status==='done').length;
+  if(o.status!=='متوقف شده' && o.status!=='لغو شده'){
+    if(doneCount===0) o.status='ثبت شده';
+    else if(doneCount===visible.length) o.status='آماده تحویل';
+    else o.status='در حال تولید';
+  }
+  log('به‌روزرسانی مرحله تولید', o.code+' — '+stageKey+' → '+status);
+  saveDB(); toast('مرحله به‌روزرسانی شد.'); openOrderDetail(orderId);
+}
+function setOrderStatus(orderId, status){
+  const o = DB.orders.find(x=>x.id===orderId);
+  o.status = status;
+  log('تغییر وضعیت سفارش', o.code+' → '+status);
+  saveDB(); toast('وضعیت سفارش به‌روزرسانی شد.'); renderOrders();
+}
+function setOrderArchive(orderId, val){
+  const o = DB.orders.find(x=>x.id===orderId);
+  o.isArchived = val;
+  log(val?'خروج سفارش از چرخه':'بازگشت سفارش به چرخه', o.code);
+  saveDB(); toast('ذخیره شد.'); renderOrders();
+}
+function deleteOrder(orderId){
+  if(!requireAdmin()) return;
+  if(!confirmDlg('حذف کامل سفارش و اطلاعات مرتبط قابل بازگشت نیست. ادامه می‌دهید؟')) return;
+  const o = DB.orders.find(x=>x.id===orderId);
+  DB.orders = DB.orders.filter(x=>x.id!==orderId);
+  DB.cuttings = DB.cuttings.filter(x=>x.orderId!==orderId);
+  log('حذف کامل سفارش', o.code);
+  saveDB(); closeModal(); renderOrders();
+}
+
+/* ================= CUTTING MANAGEMENT ================= */
+function renderCuttings(){
+  let list = DB.cuttings.slice().reverse();
+  if(window.__cuttingOrderFilter) list = list.filter(c=>c.orderId===window.__cuttingOrderFilter);
+  document.getElementById('mainArea').innerHTML = `
+    <div class="topbar">
+      <div><h1 class="page-title">مدیریت برش</h1><p class="page-sub">${list.length.toLocaleString('fa-IR')} رکورد برش ${window.__cuttingOrderFilter?'(فیلتر شده بر اساس سفارش)':''}</p></div>
+      <div style="display:flex;gap:10px;">
+        ${window.__cuttingOrderFilter?`<button class="btn btn-ghost" onclick="window.__cuttingOrderFilter=null;renderCuttings();">حذف فیلتر</button>`:''}
+        <button class="btn btn-primary" onclick="openCuttingModal()">+ ثبت برش جدید</button>
+      </div>
+    </div>
+    <div class="card">
+      ${list.length===0?'<div class="empty-state">رکورد برشی ثبت نشده است.</div>':`
+      <table><thead><tr><th>سفارش</th><th>مشخصات</th><th>ابعاد جام</th><th>تعداد جام</th><th>خروجی</th><th>وضعیت</th><th></th></tr></thead>
+      <tbody>${list.map(c=>{
+        const order = DB.orders.find(o=>o.id===c.orderId);
+        const item = order ? order.items.find(it=>it.id===c.orderItemId) : null;
+        return `<tr>
+          <td>${order?`<span class="code-tag">${order.code}</span>`:'-'}</td>
+          <td>${item?esc(glassName(item.glassSpecId)):'-'}</td>
+          <td>${c.sheetWidth}×${c.sheetHeight} mm</td>
+          <td>${c.sheetCount.toLocaleString('fa-IR')}</td>
+          <td>${c.outputCount.toLocaleString('fa-IR')}</td>
+          <td>${c.isIncomplete?'<span class="badge b-warn">برش ناقص</span>':'<span class="badge b-ok">برش کامل</span>'}</td>
+          <td class="row-actions"><button class="btn btn-sm" onclick="openCuttingModal('${c.id}')">جزئیات</button></td>
+        </tr>`;
+      }).join('')}</tbody></table>`}
+    </div>
+  `;
+}
+function allOrderItemsOptions(selectedOrderItemId){
+  const opts = [];
+  DB.orders.forEach(o=>{
+    o.items.forEach(it=>{
+      opts.push(`<option value="${o.id}::${it.id}" ${it.id===selectedOrderItemId?'selected':''}>${o.code} — ${esc(glassName(it.glassSpecId))} (${it.quantity.toLocaleString('fa-IR')} عدد)</option>`);
+    });
+  });
+  return opts.length ? opts.join('') : '<option value="">— سفارشی ثبت نشده —</option>';
+}
+function openCuttingModal(id){
+  const c = id ? DB.cuttings.find(x=>x.id===id) : null;
+  openModal(`
+    <div class="modal-head"><h3>${c?'جزئیات برش':'ثبت برش جدید'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field full"><label>آیتم سفارش *</label><select id="ct_orderitem" ${c?'disabled':''}>${allOrderItemsOptions(c?c.orderItemId:null)}</select></div>
+      <div class="field"><label>عرض جام (mm)</label><input type="number" id="ct_w" value="${c?c.sheetWidth:2250}"></div>
+      <div class="field"><label>ارتفاع جام (mm)</label><input type="number" id="ct_h" value="${c?c.sheetHeight:1600}"></div>
+      <div class="field"><label>عرض قطعه (mm)</label><input type="number" id="ct_pw" value="${c?c.pieceWidth||200:200}"></div>
+      <div class="field"><label>ارتفاع قطعه (mm)</label><input type="number" id="ct_ph" value="${c?c.pieceHeight||150:150}"></div>
+      <div class="field"><label>تعداد جام مصرفی * (توسط اپراتور تعیین می‌شود)</label><input type="number" id="ct_count" min="1" value="${c?c.sheetCount:1}"></div>
+      <div class="field"><label>تعداد خروجی</label><input type="number" id="ct_out" min="0" value="${c?c.outputCount:0}"></div>
+      <div class="field"><label>وضعیت برش</label><select id="ct_incomplete"><option value="0" ${c&&!c.isIncomplete?'selected':''}>برش کامل</option><option value="1" ${c&&c.isIncomplete?'selected':''}>برش ناقص</option></select></div>
+      <div class="field full"><label>توضیحات</label><textarea id="ct_notes">${c?esc(c.notes||''):''}</textarea></div>
+    </div>
+    <div id="nestPreviewBox" style="margin:12px 0;"></div>
+    <div class="modal-actions" style="flex-wrap:wrap;">
+      <button class="btn" onclick="updateNestPreview()">پیش‌نمایش چیدمان (پیشنهادی)</button>
+      <button class="btn btn-primary" onclick="saveCutting('${c?c.id:''}')">${c?'ذخیره تغییرات':'ثبت برش'}</button>
+      ${c?`<button class="btn" onclick="exportCNC('${c.id}')">خروجی CNC</button><button class="btn" onclick="exportDXF('${c.id}')">خروجی DXF</button>`:''}
+      ${c && isAdmin() ? `<button class="btn btn-danger" onclick="deleteCutting('${c.id}')">حذف</button>` : ''}
+      <button class="btn btn-ghost" onclick="closeModal()">بستن</button>
+    </div>
+  `, true);
+  if(c) setTimeout(updateNestPreview, 50);
+}
+function packRects(sheetW, sheetH, pieceW, pieceH, allowRotate){
+  const placements = [];
+  let x=0,y=0,rowH=0;
+  function tryPlace(w,h,rotated){
+    if(x+w>sheetW){ x=0; y+=rowH; rowH=0; }
+    if(y+h>sheetH) return false;
+    placements.push({x,y,w,h,rotated});
+    x+=w; rowH=Math.max(rowH,h);
+    return true;
+  }
+  let guard=0;
+  while(guard++<5000){
+    if(tryPlace(pieceW,pieceH,false)) continue;
+    if(allowRotate && tryPlace(pieceH,pieceW,true)) continue;
+    break;
+  }
+  return placements;
+}
+function updateNestPreview(){
+  const sw = Number(document.getElementById('ct_w').value)||1;
+  const sh = Number(document.getElementById('ct_h').value)||1;
+  const pw = Number(document.getElementById('ct_pw').value)||1;
+  const ph = Number(document.getElementById('ct_ph').value)||1;
+  const placements = packRects(sw, sh, pw, ph, true);
+  const scale = Math.min(480/sw, 300/sh);
+  const svgW = sw*scale, svgH = sh*scale;
+  const rects = placements.map(p=>`<rect x="${p.x*scale}" y="${p.y*scale}" width="${p.w*scale}" height="${p.h*scale}" fill="${p.rotated?'rgba(224,164,88,.25)':'rgba(73,179,194,.25)'}" stroke="${p.rotated?'#e0a458':'#49b3c2'}" stroke-width="1"/>`).join('');
+  document.getElementById('nestPreviewBox').innerHTML = `
+    <div class="section-note">این پیش‌نمایش یک <b>پیشنهاد ساده</b> برای چیدمان قطعات روی جام است (بدون بهینه‌سازی صنعتی). تعداد جام نهایی همچنان توسط اپراتور در فیلد بالا تعیین می‌شود.</div>
+    <div style="background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <svg width="${svgW}" height="${svgH}" style="background:#0d1116;border:1px solid var(--border);">${rects}</svg>
+      <div style="font-size:12px;color:var(--text-dim);">در هر جام حدود <b style="color:var(--accent)">${placements.length.toLocaleString('fa-IR')}</b> قطعه جا می‌شود (پیشنهادی)</div>
+    </div>
+  `;
+}
+function saveCutting(id){
+  const orderItemVal = document.getElementById('ct_orderitem') ? document.getElementById('ct_orderitem').value : null;
+  const data = {
+    sheetWidth: Number(document.getElementById('ct_w').value),
+    sheetHeight: Number(document.getElementById('ct_h').value),
+    pieceWidth: Number(document.getElementById('ct_pw').value),
+    pieceHeight: Number(document.getElementById('ct_ph').value),
+    sheetCount: Number(document.getElementById('ct_count').value),
+    outputCount: Number(document.getElementById('ct_out').value),
+    isIncomplete: document.getElementById('ct_incomplete').value==='1',
+    notes: document.getElementById('ct_notes').value.trim(),
+  };
+  if(id){
+    Object.assign(DB.cuttings.find(x=>x.id===id), data);
+    log('ویرایش برش', id);
+  }else{
+    if(!orderItemVal){ toast('آیتم سفارش را انتخاب کنید.', true); return; }
+    const [orderId, orderItemId] = orderItemVal.split('::');
+    const c = { id:uid(), orderId, orderItemId, createdDate:nowISO(), ...data };
+    DB.cuttings.push(c);
+    const order = DB.orders.find(o=>o.id===orderId);
+    if(order && order.status==='ثبت شده') order.status='در حال تولید';
+    log('ثبت برش جدید', order?order.code:orderId);
+  }
+  saveDB(); toast('اطلاعات برش ذخیره شد.'); closeModal(); renderCuttings();
+}
+function deleteCutting(id){
+  if(!requireAdmin()) return;
+  if(!confirmDlg('حذف این رکورد برش؟')) return;
+  DB.cuttings = DB.cuttings.filter(x=>x.id!==id);
+  saveDB(); closeModal(); renderCuttings();
+}
+function downloadFile(filename, content, mime){
+  const blob = new Blob([content], {type: mime||'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+function exportCNC(id){
+  const c = DB.cuttings.find(x=>x.id===id);
+  const placements = packRects(c.sheetWidth, c.sheetHeight, c.pieceWidth||200, c.pieceHeight||150, true);
+  let out = '; Glass Manager - CNC Cut List (simplified)\n';
+  out += '; Sheet: '+c.sheetWidth+'x'+c.sheetHeight+' mm | Piece: '+(c.pieceWidth||200)+'x'+(c.pieceHeight||150)+' mm\n';
+  out += 'INDEX,X,Y,W,H,ROTATED\n';
+  placements.forEach((p,i)=> out += (i+1)+','+p.x+','+p.y+','+p.w+','+p.h+','+(p.rotated?1:0)+'\n');
+  downloadFile('cutting-'+c.id.slice(0,6)+'.cnc.txt', out, 'text/plain');
+  log('خروجی CNC گرفته شد', c.id);
+}
+function exportDXF(id){
+  const c = DB.cuttings.find(x=>x.id===id);
+  const placements = packRects(c.sheetWidth, c.sheetHeight, c.pieceWidth||200, c.pieceHeight||150, true);
+  let e = '';
+  placements.forEach(p=>{
+    const pts = [[p.x,p.y],[p.x+p.w,p.y],[p.x+p.w,p.y+p.h],[p.x,p.y+p.h],[p.x,p.y]];
+    for(let i=0;i<pts.length-1;i++){
+      e += '0\nLINE\n8\nCUT\n10\n'+pts[i][0]+'\n20\n'+pts[i][1]+'\n11\n'+pts[i+1][0]+'\n21\n'+pts[i+1][1]+'\n';
+    }
+  });
+  const dxf = '0\nSECTION\n2\nENTITIES\n'+e+'0\nENDSEC\n0\nEOF\n';
+  downloadFile('cutting-'+c.id.slice(0,6)+'.dxf', dxf, 'application/dxf');
+  log('خروجی DXF گرفته شد', c.id);
+}
+
+/* ================= SUPPLIERS ================= */
+function renderSuppliers(){
+  document.getElementById('mainArea').innerHTML = `
+    <div class="topbar">
+      <div><h1 class="page-title">تامین‌کنندگان</h1><p class="page-sub">${DB.suppliers.length.toLocaleString('fa-IR')} تامین‌کننده</p></div>
+      <button class="btn btn-primary" onclick="openSupplierModal()">+ تامین‌کننده جدید</button>
+    </div>
+    <div class="card">
+      ${DB.suppliers.length===0?'<div class="empty-state">تامین‌کننده‌ای ثبت نشده است.</div>':`
+      <table><thead><tr><th>کد</th><th>نام</th><th>شرکت</th><th>تماس</th><th></th></tr></thead>
+      <tbody>${DB.suppliers.map(s=>`
+        <tr><td><span class="code-tag">${s.code}</span></td><td><b>${esc(s.name)}</b></td><td>${esc(s.companyName)||'-'}</td><td>${esc(s.phone)||'-'}</td>
+        <td class="row-actions"><button class="btn btn-sm" onclick="openSupplierModal('${s.id}')">جزئیات</button></td></tr>`).join('')}</tbody></table>`}
+    </div>
+  `;
+}
+function openSupplierModal(id){
+  const s = id ? DB.suppliers.find(x=>x.id===id) : null;
+  openModal(`
+    <div class="modal-head"><h3>${s?'ویرایش تامین‌کننده':'تامین‌کننده جدید'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    ${s?`<div class="tabs"><div class="tab active" onclick="switchSupTab(this,'supInfoTab')">اطلاعات</div><div class="tab" onclick="switchSupTab(this,'supLedgerTab')">حساب</div></div>`:''}
+    <div id="supInfoTab">
+      <div class="form-grid">
+        <div class="field full"><label>نام *</label><input id="sf_name" value="${s?esc(s.name):''}"></div>
+        <div class="field"><label>شرکت</label><input id="sf_company" value="${s?esc(s.companyName||''):''}"></div>
+        <div class="field"><label>تماس</label><input id="sf_phone" value="${s?esc(s.phone||''):''}"></div>
+        <div class="field full"><label>آدرس</label><input id="sf_address" value="${s?esc(s.address||''):''}"></div>
+        <div class="field full"><label>توضیحات</label><textarea id="sf_desc">${s?esc(s.description||''):''}</textarea></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="saveSupplier('${s?s.id:''}')">${s?'ذخیره':'ثبت'}</button>
+        ${s && isAdmin()?`<button class="btn btn-danger" onclick="deleteSupplier('${s.id}')">حذف</button>`:''}
+        <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+      </div>
+    </div>
+    ${s?`<div id="supLedgerTab" class="hidden">${renderLedgerHTML('supplier', s.id)}</div>`:''}
+  `);
+}
+function switchSupTab(el, id){
+  el.parentElement.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  ['supInfoTab','supLedgerTab'].forEach(x=>document.getElementById(x)&&document.getElementById(x).classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+function saveSupplier(id){
+  const name = document.getElementById('sf_name').value.trim();
+  if(!name){ toast('نام الزامی است.', true); return; }
+  const data = { name, companyName:document.getElementById('sf_company').value.trim(), phone:document.getElementById('sf_phone').value.trim(), address:document.getElementById('sf_address').value.trim(), description:document.getElementById('sf_desc').value.trim() };
+  if(id){ Object.assign(DB.suppliers.find(x=>x.id===id), data); log('ویرایش تامین‌کننده', name); }
+  else{ const s={id:uid(),code:nextCode('SUP','supplier'),...data}; DB.suppliers.push(s); log('ثبت تامین‌کننده', s.code); }
+  saveDB(); toast('ذخیره شد.'); closeModal(); renderSuppliers();
+}
+function deleteSupplier(id){
+  if(!requireAdmin()) return;
+  if(!confirmDlg('حذف این تامین‌کننده؟')) return;
+  DB.suppliers = DB.suppliers.filter(x=>x.id!==id);
+  saveDB(); closeModal(); renderSuppliers();
+}
+
+/* ================= INVOICES (SALES) ================= */
+let invoiceDraftItems = [];
+function renderInvoices(){
+  document.getElementById('mainArea').innerHTML = `
+    <div class="topbar">
+      <div><h1 class="page-title">فاکتور فروش</h1><p class="page-sub">${DB.invoices.length.toLocaleString('fa-IR')} فاکتور</p></div>
+      <button class="btn btn-primary" onclick="openInvoiceModal()">+ فاکتور جدید</button>
+    </div>
+    <div class="card">
+      ${DB.invoices.length===0?'<div class="empty-state">فاکتوری ثبت نشده است.</div>':`
+      <table><thead><tr><th>شماره</th><th>مشتری</th><th>تاریخ</th><th>مبلغ کل</th><th></th></tr></thead>
+      <tbody>${DB.invoices.slice().reverse().map(i=>`
+        <tr><td><span class="code-tag">${i.code}</span></td><td>${esc(custName(i.customerId))}</td><td>${fdate(i.date)}</td><td>${money(i.totalAmount)} تومان</td>
+        <td class="row-actions"><button class="btn btn-sm" onclick="openInvoiceModal('${i.id}')">جزئیات</button></td></tr>`).join('')}</tbody></table>`}
+    </div>
+  `;
+}
+function openInvoiceModal(id){
+  const inv = id ? DB.invoices.find(x=>x.id===id) : null;
+  invoiceDraftItems = inv ? JSON.parse(JSON.stringify(inv.items)) : [];
+  openModal(`
+    <div class="modal-head"><h3>${inv?'فاکتور '+inv.code:'فاکتور فروش جدید'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field"><label>مشتری *</label><select id="inv_customer">${customerOptions(inv?inv.customerId:null)}</select></div>
+      <div class="field"><label>تخفیف (تومان)</label><input type="number" id="inv_discount" value="${inv?inv.discount||0:0}"></div>
+    </div>
+    <h4 style="margin:14px 0 8px;font-size:13px;">آیتم‌ها</h4>
+    <div id="invItemsBox"></div>
+    <div class="form-grid" style="margin-top:8px;">
+      <div class="field full"><label>شرح</label><input id="inv_item_desc" placeholder="مثلاً شیشه مشخصات A"></div>
+      <div class="field"><label>تعداد</label><input type="number" id="inv_item_qty" min="1" value="1"></div>
+      <div class="field"><label>قیمت واحد</label><input type="number" id="inv_item_price" min="0" value="0"></div>
+    </div>
+    <button class="btn btn-sm" onclick="addInvoiceItem()">+ افزودن</button>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveInvoice('${inv?inv.id:''}')">${inv?'ذخیره':'ثبت فاکتور'}</button>
+      <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+    </div>
+  `, true);
+  renderInvoiceItemsBox();
+}
+function renderInvoiceItemsBox(){
+  const box = document.getElementById('invItemsBox');
+  let total = 0;
+  box.innerHTML = `<div class="items-list"><table><thead><tr><th>شرح</th><th>تعداد</th><th>قیمت</th><th>جمع</th><th></th></tr></thead><tbody>
+  ${invoiceDraftItems.length===0?'<tr><td colspan="5" style="text-align:center;color:var(--text-faint);padding:14px;">آیتمی نیست</td></tr>':invoiceDraftItems.map((it,i)=>{
+    const lt = it.quantity*it.price; total+=lt;
+    return `<tr><td>${esc(it.description)}</td><td>${it.quantity.toLocaleString('fa-IR')}</td><td>${money(it.price)}</td><td>${money(lt)}</td><td class="row-actions"><button class="btn btn-sm btn-danger" onclick="invoiceDraftItems.splice(${i},1);renderInvoiceItemsBox();">حذف</button></td></tr>`;
+  }).join('')}</tbody></table></div>`;
+}
+function addInvoiceItem(){
+  const description = document.getElementById('inv_item_desc').value.trim();
+  const quantity = Number(document.getElementById('inv_item_qty').value);
+  const price = Number(document.getElementById('inv_item_price').value);
+  if(!description || !quantity){ toast('شرح و تعداد را وارد کنید.', true); return; }
+  invoiceDraftItems.push({ id:uid(), description, quantity, price });
+  renderInvoiceItemsBox();
+}
+function saveInvoice(id){
+  const customerId = document.getElementById('inv_customer').value;
+  if(!customerId){ toast('مشتری را انتخاب کنید.', true); return; }
+  if(invoiceDraftItems.length===0){ toast('حداقل یک آیتم اضافه کنید.', true); return; }
+  const discount = Number(document.getElementById('inv_discount').value)||0;
+  const subtotal = invoiceDraftItems.reduce((s,it)=>s+it.quantity*it.price,0);
+  const totalAmount = Math.max(0, subtotal - discount);
+  const data = { customerId, discount, items: invoiceDraftItems, totalAmount };
+  if(id){ Object.assign(DB.invoices.find(x=>x.id===id), data); log('ویرایش فاکتور', id); }
+  else{ const inv = { id:uid(), code:nextCode('INV','invoice'), date:nowISO(), ...data }; DB.invoices.push(inv); log('ثبت فاکتور فروش', inv.code); }
+  saveDB(); toast('فاکتور ذخیره شد.'); closeModal(); renderInvoices();
+}
+
+/* ================= PURCHASES ================= */
+function renderPurchases(){
+  document.getElementById('mainArea').innerHTML = `
+    <div class="topbar">
+      <div><h1 class="page-title">خریدها</h1><p class="page-sub">${DB.purchases.length.toLocaleString('fa-IR')} خرید ثبت شده</p></div>
+      <button class="btn btn-primary" onclick="openPurchaseModal()">+ خرید جدید</button>
+    </div>
+    <div class="card">
+      ${DB.purchases.length===0?'<div class="empty-state">خریدی ثبت نشده است.</div>':`
+      <table><thead><tr><th>تامین‌کننده</th><th>تاریخ</th><th>نوع</th><th>مبلغ</th><th>توضیحات</th></tr></thead>
+      <tbody>${DB.purchases.slice().reverse().map(p=>`
+        <tr><td>${esc(supName(p.supplierId))}</td><td>${fdate(p.date)}</td><td>${esc(p.type)||'-'}</td><td>${money(p.amount)} تومان</td><td>${esc(p.description)||'-'}</td></tr>`).join('')}</tbody></table>`}
+    </div>
+  `;
+}
+function openPurchaseModal(){
+  if(DB.suppliers.length===0){ toast('ابتدا یک تامین‌کننده ثبت کنید.', true); return; }
+  openModal(`
+    <div class="modal-head"><h3>خرید جدید</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field full"><label>تامین‌کننده *</label><select id="pu_supplier">${DB.suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></div>
+      <div class="field"><label>مبلغ (تومان) *</label><input type="number" id="pu_amount" min="0"></div>
+      <div class="field"><label>نوع خرید</label><input id="pu_type" placeholder="مثلاً جام خام"></div>
+      <div class="field full"><label>توضیحات</label><textarea id="pu_desc"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="savePurchase()">ثبت خرید</button>
+      <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+    </div>
+  `);
+}
+function savePurchase(){
+  const supplierId = document.getElementById('pu_supplier').value;
+  const amount = Number(document.getElementById('pu_amount').value);
+  if(!supplierId || !amount){ toast('تامین‌کننده و مبلغ الزامی است.', true); return; }
+  const p = { id:uid(), supplierId, amount, type:document.getElementById('pu_type').value.trim(), description:document.getElementById('pu_desc').value.trim(), date:nowISO() };
+  DB.purchases.push(p);
+  log('ثبت خرید', supName(supplierId)+' — '+money(amount));
+  saveDB(); toast('خرید ثبت شد.'); closeModal(); renderPurchases();
+}
+
+/* ================= TRANSACTIONS (RECEIPTS / PAYMENTS) ================= */
+function renderTransactions(){
+  document.getElementById('mainArea').innerHTML = `
+    <div class="topbar">
+      <div><h1 class="page-title">دریافت و پرداخت</h1><p class="page-sub">${DB.transactions.length.toLocaleString('fa-IR')} تراکنش</p></div>
+      <button class="btn btn-primary" onclick="openTransactionModal()">+ ثبت تراکنش</button>
+    </div>
+    <div class="card">
+      ${DB.transactions.length===0?'<div class="empty-state">تراکنشی ثبت نشده است.</div>':`
+      <table><thead><tr><th>طرف حساب</th><th>نوع</th><th>مبلغ</th><th>روش</th><th>تاریخ</th><th></th></tr></thead>
+      <tbody>${DB.transactions.slice().reverse().map(t=>`
+        <tr>
+          <td>${esc(t.partyType==='customer'?custName(t.partyId):supName(t.partyId))}</td>
+          <td>${t.type==='receipt'?'<span class="badge b-ok">دریافت</span>':'<span class="badge b-warn">پرداخت</span>'}</td>
+          <td>${money(t.amount)} تومان</td>
+          <td>${esc(t.method)}</td>
+          <td>${fdate(t.date)}</td>
+          <td class="row-actions"><button class="btn btn-sm" onclick="openTransactionModal('${t.id}')">ویرایش</button></td>
+        </tr>`).join('')}</tbody></table>`}
+    </div>
+  `;
+}
+function openTransactionModal(id){
+  const t = id ? DB.transactions.find(x=>x.id===id) : null;
+  openModal(`
+    <div class="modal-head"><h3>${t?'ویرایش تراکنش':'ثبت دریافت/پرداخت'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field"><label>نوع طرف حساب</label><select id="tr_partytype" onchange="onPartyTypeChange()"><option value="customer" ${t&&t.partyType==='customer'?'selected':''}>مشتری</option><option value="supplier" ${t&&t.partyType==='supplier'?'selected':''}>تامین‌کننده</option></select></div>
+      <div class="field"><label>طرف حساب *</label><select id="tr_party"></select></div>
+      <div class="field"><label>نوع</label><select id="tr_type"><option value="receipt" ${t&&t.type==='receipt'?'selected':''}>دریافت</option><option value="payment" ${t&&t.type==='payment'?'selected':''}>پرداخت</option></select></div>
+      <div class="field"><label>مبلغ (تومان) *</label><input type="number" id="tr_amount" value="${t?t.amount:''}"></div>
+      <div class="field"><label>نوع پرداخت</label><select id="tr_method" onchange="document.getElementById('tr_checkBox').classList.toggle('hidden', this.value!=='چک')">${PAYMENT_METHODS.map(m=>`<option value="${m}" ${t&&t.method===m?'selected':''}>${m}</option>`).join('')}</select></div>
+      <div class="field full"><label>توضیحات</label><textarea id="tr_desc">${t?esc(t.description||''):''}</textarea></div>
+    </div>
+    <div id="tr_checkBox" class="form-grid ${!(t&&t.method==='چک')?'hidden':''}">
+      <div class="field"><label>شماره چک</label><input id="tr_checkno" value="${t?esc(t.checkNo||''):''}"></div>
+      <div class="field"><label>نام صادرکننده</label><input id="tr_checkissuer" value="${t?esc(t.checkIssuer||''):''}"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveTransaction('${t?t.id:''}')">${t?'ذخیره':'ثبت تراکنش'}</button>
+      <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+    </div>
+  `);
+  onPartyTypeChange(t?t.partyId:null);
+}
+function onPartyTypeChange(selectedId){
+  const type = document.getElementById('tr_partytype').value;
+  const sel = document.getElementById('tr_party');
+  if(type==='customer') sel.innerHTML = customerOptions(selectedId);
+  else sel.innerHTML = DB.suppliers.map(s=>`<option value="${s.id}" ${s.id===selectedId?'selected':''}>${esc(s.name)}</option>`).join('') || '<option value="">— تامین‌کننده‌ای نیست —</option>';
+}
+function saveTransaction(id){
+  const partyType = document.getElementById('tr_partytype').value;
+  const partyId = document.getElementById('tr_party').value;
+  const amount = Number(document.getElementById('tr_amount').value);
+  if(!partyId || !amount){ toast('طرف حساب و مبلغ الزامی است.', true); return; }
+  const data = {
+    partyType, partyId, type: document.getElementById('tr_type').value, amount,
+    method: document.getElementById('tr_method').value, description: document.getElementById('tr_desc').value.trim(),
+    checkNo: document.getElementById('tr_checkno').value.trim(), checkIssuer: document.getElementById('tr_checkissuer').value.trim(),
+  };
+  if(id){ Object.assign(DB.transactions.find(x=>x.id===id), data); log('ویرایش تراکنش', id); }
+  else{ DB.transactions.push({ id:uid(), date:nowISO(), ...data }); log('ثبت تراکنش', data.type+' — '+money(amount)); }
+  saveDB(); toast('تراکنش ذخیره شد.'); closeModal(); renderTransactions();
+}
+
+/* ---------------- ledger (customer/supplier account) ---------------- */
+function customerBalance(customerId){
+  let bal = 0;
+  DB.invoices.forEach(i=>{ if(!customerId || i.customerId===customerId) bal += Number(i.totalAmount||0); });
+  DB.transactions.forEach(t=>{
+    if(t.partyType!=='customer') return;
+    if(customerId && t.partyId!==customerId) return;
+    bal += t.type==='payment' ? Number(t.amount) : -Number(t.amount);
+  });
+  return bal;
+}
+function renderLedgerHTML(partyType, partyId){
+  const rows = [];
+  if(partyType==='customer'){
+    DB.orders.filter(o=>o.customerId===partyId).forEach(o=> rows.push({date:o.date, label:'سفارش '+o.code, amount:null}));
+    DB.invoices.filter(i=>i.customerId===partyId).forEach(i=> rows.push({date:i.date, label:'فاکتور '+i.code, amount:i.totalAmount}));
+  }
+  DB.transactions.filter(t=>t.partyType===partyType && t.partyId===partyId).forEach(t=>{
+    rows.push({date:t.date, label:(t.type==='receipt'?'دریافت':'پرداخت')+' ('+t.method+')', amount: t.type==='receipt'?-t.amount:t.amount, isTx:true});
+  });
+  rows.sort((a,b)=> new Date(a.date)-new Date(b.date));
+  const balance = partyType==='customer' ? customerBalance(partyId) : 0;
+  return `
+    <div class="kv"><span>مانده حساب فعلی</span><b style="color:${balance>0?'var(--danger)':'var(--success)'}">${money(Math.abs(balance))} تومان ${balance>0?'(بدهکار)':balance<0?'(بستانکار)':''}</b></div>
+    <div style="max-height:280px;overflow-y:auto;margin-top:8px;">
+    ${rows.length===0?'<div class="empty-state">تراکنشی ثبت نشده.</div>':rows.map(r=>`<div class="ledger-row"><span>${fdate(r.date)} — ${esc(r.label)}</span><b>${r.amount!=null?money(r.amount)+' تومان':''}</b></div>`).join('')}
+    </div>
+  `;
+}
+
+/* ================= REPORTS ================= */
+function renderReports(){
+  const active = DB.orders.filter(o=>!o.isArchived && o.status!=='تحویل شده' && o.status!=='لغو شده');
+  const stopped = DB.orders.filter(o=>o.status==='متوقف شده');
+  const delivered = DB.orders.filter(o=>o.status==='تحویل شده');
+  const totalSales = DB.invoices.reduce((s,i)=>s+Number(i.totalAmount||0),0);
+  const totalPurchases = DB.purchases.reduce((s,p)=>s+Number(p.amount||0),0);
+  document.getElementById('mainArea').innerHTML = `
+    <div class="topbar"><div><h1 class="page-title">گزارش‌ها</h1><p class="page-sub">گزارش‌های پایه سیستم</p></div></div>
+    <div class="card"><div class="card-head"><h3>سفارش‌های فعال (${active.length.toLocaleString('fa-IR')})</h3></div>
+      ${orderMiniTable(active)}</div>
+    <div class="card"><div class="card-head"><h3>سفارش‌های متوقف شده (${stopped.length.toLocaleString('fa-IR')})</h3></div>
+      ${orderMiniTable(stopped)}</div>
+    <div class="card"><div class="card-head"><h3>سفارش‌های تحویل شده (${delivered.length.toLocaleString('fa-IR')})</h3></div>
+      ${orderMiniTable(delivered)}</div>
+    <div class="card"><div class="card-head"><h3>خلاصه مالی</h3></div>
+      <div class="kv"><span>جمع فروش (فاکتورها)</span><b>${money(totalSales)} تومان</b></div>
+      <div class="kv"><span>جمع خرید</span><b>${money(totalPurchases)} تومان</b></div>
+    </div>
+    <div class="card"><div class="card-head"><h3>مانده حساب مشتریان</h3></div>
+      ${DB.customers.length===0?'<div class="empty-state">مشتری‌ای نیست.</div>':`<table><thead><tr><th>مشتری</th><th>مانده حساب</th></tr></thead><tbody>
+      ${DB.customers.map(c=>{ const b=customerBalance(c.id); return `<tr><td>${esc(c.name)}</td><td style="color:${b>0?'var(--danger)':'var(--success)'}">${money(Math.abs(b))} تومان ${b>0?'(بدهکار)':b<0?'(بستانکار)':''}</td></tr>`; }).join('')}
+      </tbody></table>`}
+    </div>
+  `;
+}
+function orderMiniTable(list){
+  if(list.length===0) return '<div class="empty-state">موردی نیست.</div>';
+  return `<table><thead><tr><th>کد</th><th>مشتری</th><th>تاریخ</th><th>وضعیت</th></tr></thead><tbody>
+  ${list.map(o=>`<tr><td><span class="code-tag">${o.code}</span></td><td>${esc(custName(o.customerId))}</td><td>${fdate(o.date)}</td><td>${statusBadge(o.status)}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+
+/* ================= SETTINGS ================= */
+function renderSettings(){
+  document.getElementById('mainArea').innerHTML = `
+    <div class="topbar"><div><h1 class="page-title">تنظیمات و بکاپ</h1><p class="page-sub">اطلاعات شرکت، کاربران، پشتیبان‌گیری</p></div></div>
+
+    <div class="card">
+      <div class="card-head"><h3>اطلاعات شرکت</h3></div>
+      <div class="form-grid">
+        <div class="field full"><label>نام شرکت / کارگاه</label><input id="st_company" value="${esc(DB.settings.companyName||'')}"></div>
+        <div class="field"><label>شماره تماس</label><input id="st_phone" value="${esc(DB.settings.phone||'')}"></div>
+        <div class="field full"><label>آدرس</label><input id="st_address" value="${esc(DB.settings.address||'')}"></div>
+      </div>
+      <div class="modal-actions" style="border-top:none;padding-top:8px;"><button class="btn btn-primary" onclick="saveSettings()">ذخیره تنظیمات</button></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>پشتیبان‌گیری (Backup)</h3><span class="muted">تمام اطلاعات به‌صورت یک فایل JSON</span></div>
+      <p style="color:var(--text-dim);font-size:12.5px;line-height:1.9;">چون این نرم‌افزار به‌صورت آفلاین روی همین سیستم کار می‌کند، توصیه می‌شود مرتب (مثلاً هفتگی) یک فایل پشتیبان بگیرید و در جای امنی نگه دارید.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-primary" onclick="doBackup()">دانلود فایل پشتیبان کامل</button>
+        <label class="btn" style="position:relative;overflow:hidden;">
+          بازیابی از فایل پشتیبان
+          <input type="file" accept=".json" onchange="doRestore(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;">
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>کاربران سیستم</h3>${isAdmin()?`<button class="btn btn-sm btn-primary" onclick="openUserModal()">+ کاربر جدید</button>`:''}</div>
+      <table><thead><tr><th>نام کاربری</th><th>نام</th><th>نقش</th><th>وضعیت</th>${isAdmin()?'<th></th>':''}</tr></thead>
+      <tbody>${DB.users.map(u=>`<tr><td><span class="code-tag">${esc(u.username)}</span></td><td>${esc(u.name)}</td><td>${u.role==='Admin'?'مدیر':'کاربر معمولی'}</td><td>${u.isActive?'<span class="badge b-ok">فعال</span>':'<span class="badge b-muted">غیرفعال</span>'}</td>
+        ${isAdmin()?`<td class="row-actions"><button class="btn btn-sm" onclick="openUserModal('${u.id}')">ویرایش</button></td>`:''}</tr>`).join('')}</tbody></table>
+    </div>
+  `;
+}
+function saveSettings(){
+  DB.settings.companyName = document.getElementById('st_company').value.trim();
+  DB.settings.phone = document.getElementById('st_phone').value.trim();
+  DB.settings.address = document.getElementById('st_address').value.trim();
+  saveDB(); toast('تنظیمات ذخیره شد.');
+}
+function doBackup(){
+  const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  downloadFile('glassmanager-backup-'+stamp+'.json', JSON.stringify(DB, null, 2), 'application/json');
+  log('تهیه فایل پشتیبان', stamp);
+}
+function doRestore(input){
+  const file = input.files[0];
+  if(!file) return;
+  if(!confirmDlg('بازیابی از فایل پشتیبان، تمام اطلاعات فعلی را جایگزین می‌کند. ادامه می‌دهید؟')) { input.value=''; return; }
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!data.customers || !data.orders){ toast('فایل پشتیبان معتبر نیست.', true); return; }
+      DB = data;
+      saveDB();
+      toast('اطلاعات با موفقیت بازیابی شد.');
+      renderSettings();
+    }catch(err){ toast('خطا در خواندن فایل پشتیبان.', true); }
+  };
+  reader.readAsText(file);
+}
+function openUserModal(id){
+  if(!requireAdmin()) return;
+  const u = id ? DB.users.find(x=>x.id===id) : null;
+  openModal(`
+    <div class="modal-head"><h3>${u?'ویرایش کاربر':'کاربر جدید'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="field"><label>نام کاربری *</label><input id="uf_username" value="${u?esc(u.username):''}" ${u?'disabled':''}></div>
+      <div class="field"><label>نام کامل *</label><input id="uf_name" value="${u?esc(u.name):''}"></div>
+      <div class="field"><label>رمز عبور ${u?'(خالی = بدون تغییر)':'*'}</label><input type="password" id="uf_pass"></div>
+      <div class="field"><label>نقش</label><select id="uf_role"><option value="Admin" ${u&&u.role==='Admin'?'selected':''}>مدیر</option><option value="User" ${u&&u.role==='User'?'selected':''}>کاربر معمولی</option></select></div>
+      ${u?`<div class="field"><label>وضعیت</label><select id="uf_active"><option value="1" ${u.isActive?'selected':''}>فعال</option><option value="0" ${!u.isActive?'selected':''}>غیرفعال</option></select></div>`:''}
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveUser('${u?u.id:''}')">${u?'ذخیره':'ثبت کاربر'}</button>
+      <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+    </div>
+  `);
+}
+async function saveUser(id){
+  const username = document.getElementById('uf_username').value.trim();
+  const name = document.getElementById('uf_name').value.trim();
+  const pass = document.getElementById('uf_pass').value;
+  const role = document.getElementById('uf_role').value;
+  if(!username || !name){ toast('نام کاربری و نام الزامی است.', true); return; }
+  if(id){
+    const u = DB.users.find(x=>x.id===id);
+    u.name = name; u.role = role; u.isActive = document.getElementById('uf_active').value==='1';
+    if(pass) u.passwordHash = await sha256(pass);
+    log('ویرایش کاربر', username);
+  }else{
+    if(!pass){ toast('رمز عبور الزامی است.', true); return; }
+    if(DB.users.some(x=>x.username===username)){ toast('این نام کاربری قبلاً استفاده شده.', true); return; }
+    const hash = await sha256(pass);
+    DB.users.push({ id:uid(), username, passwordHash:hash, name, role, isActive:true, createdDate:nowISO() });
+    log('ثبت کاربر جدید', username);
+  }
+  saveDB(); toast('ذخیره شد.'); closeModal(); renderSettings();
+}
+
+/* ================= LOGS ================= */
+function renderLogs(){
+  document.getElementById('mainArea').innerHTML = `
+    <div class="topbar"><div><h1 class="page-title">تاریخچه فعالیت</h1><p class="page-sub">آخرین ${Math.min(DB.logs.length,500).toLocaleString('fa-IR')} فعالیت ثبت شده</p></div></div>
+    <div class="card">
+      ${DB.logs.length===0?'<div class="empty-state">فعالیتی ثبت نشده است.</div>':`
+      <table><thead><tr><th>کاربر</th><th>عملیات</th><th>جزئیات</th><th>زمان</th></tr></thead>
+      <tbody>${DB.logs.map(l=>`<tr><td>${esc(l.user)}</td><td>${esc(l.action)}</td><td>${esc(l.details)}</td><td>${fdate(l.date)}</td></tr>`).join('')}</tbody></table>`}
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
